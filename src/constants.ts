@@ -4,5 +4,7 @@ export enum States{
 }
 
 export enum Roles{
-    KickStarter = 0
+    KickStarter = 0,
+    Harvester = 1,
+    Collector = 2
 }

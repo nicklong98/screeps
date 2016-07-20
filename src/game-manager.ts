@@ -1,5 +1,7 @@
 import {SpawnManager} from "./spawnManager";
 import {CreepController} from "./creepController";
+import {SourceTile} from "./SourceTile";
+import {Helpers} from "./helper";
 
 /**
  * Singleton object.
@@ -10,10 +12,20 @@ import {CreepController} from "./creepController";
 export namespace GameManager {
 
     export function globalBootstrap() {
-
+        //initialize the global memory
+        if(!Memory.global){
+            Memory.global = {};
+        }
+        //initialize the sources
+        if(!Memory.global.sources){
+            var sourceTiles : {[sourceId : string]: SourceTile;} = {};
+            Memory.global.sources = sourceTiles;
+            console.log('the sources have been initialized');
+        }
     }
 
     export function loop() {
+        Helpers.cleanDeadMemory();
         SpawnManager.run();
         CreepController.run();
     }
