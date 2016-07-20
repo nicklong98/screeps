@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import {Roles} from "./constants";
 import {Helpers} from "./helper";
 import {SourceTile} from "./SourceTile";
+import {Harvester, Collector} from "./harvester";
 
 export class SpawnManager {
     private static init():void{
@@ -38,7 +39,13 @@ export class SpawnManager {
             if(needsKickstarters){
                 SpawnManager.spawnKickstarters(spawn);
             } else {
-                console.log('No kickstarters required');
+                if(numHarvesters < spawn.room.memory.numSafeSources){
+                    console.log('need some harvesters');
+                    SpawnManager.spawnHarvesters(spawn);
+                } else if(numCollectors < numHarvesters * 2){
+                    console.log('need some collectors');
+                    SpawnManager.spawnCollectors(spawn);
+                }
             }
         }
     }
@@ -56,7 +63,17 @@ export class SpawnManager {
     private static spawnHarvesters(spawn : Spawn) : void {
         var numHarvesters : number = Helpers.getNumberOfCreepsByRoleAndRoom(Roles.Harvester, spawn.room.name);
         if(numHarvesters < spawn.room.memory.numSafeSources) {
+            var spawnResult = Harvester.Spawn(spawn, spawn.room.energyCapacityAvailable);
+            if(spawnResult != ERR_BUSY && spawnResult != ERR_NOT_ENOUGH_ENERGY){
+                console.log('created new harvester named ' + spawnResult);
+            }
+        }
+    }
 
+    private static spawnCollectors(spawn : Spawn) : void {
+        var spawnResult = Collector.Spawn(spawn, spawn.room.energyCapacityAvailable);
+        if(spawnResult != ERR_BUSY && spawnResult != ERR_NOT_ENOUGH_ENERGY){
+            console.log('created new collector named ' + spawnResult);
         }
     }
 

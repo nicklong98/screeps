@@ -38,6 +38,14 @@ export class Helpers{
         return sources;
     }
 
+    public static getUnworkedSourcesByRoomAndRole(room : Room, role : Roles, mustBeSafe : boolean = true) : Source[] {
+        return _.filter(Helpers.getSourcesByRoom(room, mustBeSafe), function(x : Source) {
+            return _.filter(Game.creeps, function(c : Creep){
+                    return c.memory.source == x.id && c.memory.role == role;
+                }).length <= 0;
+        });
+    }
+
     public static assignSourceToCreep(source : Source, creep : Creep) : void{
         creep.memory.source = source.id;
     }
@@ -59,5 +67,13 @@ export class Helpers{
             return creeps[0];
         }
         return null;
+    }
+
+    public static createBodySegmentOfLength(bodyPart : string, length : number) : string[] {
+        var body : string[] = [];
+        for(let i = 0; i < length; i++){
+            body.push(bodyPart);
+        }
+        return body;
     }
 }
