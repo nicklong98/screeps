@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import {Roles} from "./constants";
 import {KickStarter, Harvester, Collector} from "./harvester";
+import {Upgrader} from "./workers";
 export class CreepController{
     public static run(){
         var kickStarters = _.filter(Game.creeps, function(x : Creep){
@@ -11,6 +12,9 @@ export class CreepController{
         });
         var collectors = _.filter(Game.creeps, function(x : Creep){
             return x.memory.role == Roles.Collector;
+        });
+        var upgraders = _.filter(Game.creeps, function(x : Creep){
+            return x.memory.role == Roles.Upgrader;
         });
         _.forEach(kickStarters, function(x : Creep){
             var kickStarter = new KickStarter(x);
@@ -23,7 +27,10 @@ export class CreepController{
         _.forEach(collectors, function(x : Creep){
             var collector = new Collector(x);
             collector.run();
-            //fuck
+        });
+        _.forEach(upgraders, function(x : Creep){
+            var upgrader = new Upgrader(x);
+            upgrader.run();
         });
     }
 }

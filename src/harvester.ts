@@ -48,11 +48,18 @@ export class KickStarter{
     }
 
     public run() : void{
-        if(this.state == States.Returning && this.creep.carry.energy == 0){
-            this.state = States.Working;
-        } else if(this.state == States.Working && this.creep.carry.energy >= this.creep.carryCapacity) {
-            this.assignRepo();
-            this.state = States.Returning;
+        if(this.state != States.Recycling) {
+            if (this.state == States.Returning && this.creep.carry.energy == 0) {
+                /*if(Helpers.getNumberOfCreepsByRole(Roles.Collector) > 0 && Helpers.getNumberOfCreepsByRole(Roles.Harvester) > 0){
+                    console.log('recycling myself...');
+                    this.state = States.Recycling;
+                } else {*/
+                    this.state = States.Working;
+                //}
+            } else if (this.state == States.Working && this.creep.carry.energy >= this.creep.carryCapacity) {
+                this.assignRepo();
+                this.state = States.Returning;
+            }
         }
 
         switch (this.state){
@@ -64,6 +71,14 @@ export class KickStarter{
             case States.Working:
                 if(this.creep.harvest(this.source) == ERR_NOT_IN_RANGE){
                     this.creep.moveTo(this.source);
+                }
+                break;
+            case States.Recycling:
+                var spawn : Spawn = _.filter(this.homeRoom.find(FIND_MY_STRUCTURES), function(x : Structure){
+                    return x.structureType == STRUCTURE_SPAWN;
+                });
+                if(spawn.recycleCreep(this.creep) == ERR_NOT_IN_RANGE){
+                    this.creep.moveTo(spawn);
                 }
                 break;
         }
@@ -126,7 +141,6 @@ export class Collector {
 
      public static Spawn(spawn : Spawn, energyCapacity : number) : string | number {
          var numBodyParts:number = Math.floor(energyCapacity / (BODYPART_COST[MOVE] + BODYPART_COST[CARRY]));
-         console.log('spawning collector with ' + numBodyParts + ' segments');
          var body = Helpers.createBodySegmentOfLength(CARRY, numBodyParts);
          body = body.concat(Helpers.createBodySegmentOfLength(MOVE, numBodyParts));
          var result = spawn.createCreep(body, undefined, {role: Roles.Collector, homeRoomName: spawn.room.name});
@@ -152,12 +166,11 @@ export class Collector {
                 this.assignRepo();
             }
         }
+        this.energyDrop = Game.getObjectById(this.creep.memory.droppedEnergy);
+        this.repo = Game.getObjectById(this.creep.memory.repo);
     }
 
     private assignEnergy() : void {
-        /*var energies = this.creep.room.find(FIND_DROPPED_RESOURCES, new {filter : function(x){
-            return true;
-        }});*/
         var energies = _.filter(this.creep.room.find(FIND_DROPPED_RESOURCES), function (x){
             var creepsAssigned = _.filter(Game.creeps, function(c : Creep){
                 return c.memory.droppedEnergy && c.memory.droppedEnergy == x.id;
@@ -165,69 +178,39 @@ export class Collector {
             return (!creepsAssigned || creepsAssigned.length <= 0);
         });
         energies = _.sortBy(energies, function(x : Energy){ return x.amount; }).reverse();
-        this.creep.memory.droppedEnergy = energies[0];
-        this.energyDrop = energies[0];
-        /*var energies = this.creep.room.find(FIND_DROPPED_RESOURCES, new {filter : function(x){
-            var creepsAssigned = _.filter(Game.creeps, function(c : Creep){
-                return c.memory.droppedEnergy && c.memory.droppedEnergy == x.id;
-            });
-            return (!creepsAssigned || creepsAssigned.length <= 0);
-        }});
-        /*var energies = this.creep.room.find(FIND_DROPPED_RESOURCES, new {filter : function(x : Energy){
-            var creepsAssigned = _.filter(Game.creeps, function(c : Creep){
-                return c.memory.droppedEnergy && c.memory.droppedEnergy == x.id;
-            });
-            return (!creepsAssigned || creepsAssigned.length <= 0);
-        }});
-        energies = _.sortBy(energies, function(x : Energy){ return x.amount; }).reverse();
-        this.creep.memory.droppedEnergy = energies[0];
-        this.energyDrop = energies[0];*/
+        if(energies && energies.length > 0) {
+            this.creep.memory.droppedEnergy = energies[0].id;
+            this.energyDrop = energies[0];
+        } else {
+            console.log('could not find any energies');
+        }
     }
 
     private assignRepo() : void {
         this.repo = this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter : function(s: Structure){
             return s.structureType == STRUCTURE_CONTAINER ||
-                ((s.structureType == STRUCTURE_SPAWN ||
-                s.structureType == STRUCTURE_EXTENSION) && s.my);
+                s.structureType == STRUCTURE_SPAWN ||
+                s.structureType == STRUCTURE_EXTENSION;
         }});
         this.creep.memory.repo = this.repo.id;
     }
 
-     /*private assignEnergy() : void {
-     var energies = this.creep.room.find(FIND_DROPPED_RESOURCES, new {filter : function(x : Energy){
-     var creepsAssigned = _.filter(Game.creeps, function(c : Creep){
-     return c.memory.droppedEnergy && c.memory.droppedEnergy == x.id;
-     });
-     return (!creepsAssigned || creepsAssigned.length <= 0);
-     }});
-     energies = _.sortBy(energies, function(x : Energy){ return x.amount; }).reverse();
-     this.creep.memory.droppedEnergy = energies[0];
-     this.energyDrop = energies[0];
-     }
-
-     private assignRepo() : void {
-     this.repo = this.creep.pos.findClosestByRange(FIND_STRUCTURES, {filter : function(s: Structure){
-     return s.structureType == STRUCTURE_CONTAINER ||
-     ((s.structureType == STRUCTURE_SPAWN ||
-     s.structureType == STRUCTURE_EXTENSION) && s.my);
-     }});
-     this.creep.memory.repo = this.repo.id;
-     }*/
-
     public run():void {
-        console.log('running collector logic');
         var creep = this.creep;
         if (creep.memory.state == States.Returning && creep.carry.energy == 0) {
             this.assignEnergy();
             creep.memory.state = States.Working;
         } else if (creep.memory.state == States.Working && creep.carry.energy >= Math.floor(0.75 * creep.carryCapacity)) {
+            delete this.creep.memory.droppedEnergy;
             this.assignRepo();
             creep.memory.state = States.Returning;
         }
 
         switch (creep.memory.state) {
             case States.Returning:
-                if (creep.transfer(this.repo, RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
+                this.assignRepo();
+                var response = creep.transfer(this.repo, RESOURCE_ENERGY);
+                if (response == ERR_NOT_IN_RANGE) {
                     creep.moveTo(this.repo);
                 }
                 break;

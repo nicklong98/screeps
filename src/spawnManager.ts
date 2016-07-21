@@ -3,6 +3,7 @@ import {Roles} from "./constants";
 import {Helpers} from "./helper";
 import {SourceTile} from "./SourceTile";
 import {Harvester, Collector} from "./harvester";
+import {Upgrader} from "./workers";
 
 export class SpawnManager {
     private static init():void{
@@ -45,6 +46,9 @@ export class SpawnManager {
                 } else if(numCollectors < numHarvesters * 2){
                     console.log('need some collectors');
                     SpawnManager.spawnCollectors(spawn);
+                } else {
+                    console.log('nothing needed... spawning upgraders');
+                    SpawnManager.spawnUpgraders(spawn);
                 }
             }
         }
@@ -74,6 +78,13 @@ export class SpawnManager {
         var spawnResult = Collector.Spawn(spawn, spawn.room.energyCapacityAvailable);
         if(spawnResult != ERR_BUSY && spawnResult != ERR_NOT_ENOUGH_ENERGY){
             console.log('created new collector named ' + spawnResult);
+        }
+    }
+
+    private static spawnUpgraders(spawn : Spawn) : void {
+        var spawnResult = Upgrader.Spawn(spawn, spawn.room.energyCapacityAvailable);
+        if(spawnResult != ERR_BUSY && spawnResult != ERR_NOT_ENOUGH_ENERGY){
+            console.log('created new upgrader named ' + spawnResult);
         }
     }
 
