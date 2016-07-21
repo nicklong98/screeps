@@ -1,9 +1,9 @@
 import * as _ from 'lodash';
-import {Roles} from "./constants";
+import {Roles, MagicNumbers} from "./constants";
 import {Helpers} from "./helper";
 import {SourceTile} from "./SourceTile";
 import {Harvester, Collector} from "./harvester";
-import {Upgrader} from "./workers";
+import {Upgrader, Builder} from "./workers";
 
 export class SpawnManager {
     private static init():void{
@@ -36,6 +36,9 @@ export class SpawnManager {
             var numHarvesters : number = Helpers.getNumberOfCreepsByRoleAndRoom(Roles.Harvester, spawn.room.name);
             var numCollectors : number = Helpers.getNumberOfCreepsByRoleAndRoom(Roles.Collector, spawn.room.name);
             var numKickstarters : number = Helpers.getNumberOfCreepsByRoleAndRoom(Roles.KickStarter, spawn.room.name);
+            var numUpgraders : number = Helpers.getNumberOfCreepsByRoleAndRoom(Roles.Upgrader, spawn.room.name);
+            var numBuilders : number = Helpers.getNumberOfCreepsByRoleAndRoom(Roles.Builder, spawn.room.name);
+            var numCreeps :number = Helpers.getNumberOfCreepsByRoom(spawn.room.name);
             var needsKickstarters : boolean = (numHarvesters == 0 || numCollectors == 0) && numKickstarters < spawn.room.memory.numSafeSources;
             if(needsKickstarters){
                 SpawnManager.spawnKickstarters(spawn);
@@ -43,12 +46,18 @@ export class SpawnManager {
                 if(numHarvesters < spawn.room.memory.numSafeSources){
                     console.log('need some harvesters');
                     SpawnManager.spawnHarvesters(spawn);
-                } else if(numCollectors < numHarvesters * 2){
+                } else if(numCollectors < Math.floor(numHarvesters * 1.5)){
                     console.log('need some collectors');
                     SpawnManager.spawnCollectors(spawn);
-                } else {
-                    console.log('nothing needed... spawning upgraders');
+                } else if(numUpgraders < spawn.room.controller.level * 2){
+                    console.log('need some upgraders');
                     SpawnManager.spawnUpgraders(spawn);
+                } else if(numBuilders < 1) {
+                    console.log('need some builders');
+                    SpawnManager.spawnBuilders(spawn);
+                } else if(numCreeps < MagicNumbers.MAX_NUM_CREEPS){
+                    console.log("Haven't reached pop cap yet... fuck it have some builders");
+                    SpawnManager.spawnBuilders(spawn);
                 }
             }
         }
@@ -85,6 +94,13 @@ export class SpawnManager {
         var spawnResult = Upgrader.Spawn(spawn, spawn.room.energyCapacityAvailable);
         if(spawnResult != ERR_BUSY && spawnResult != ERR_NOT_ENOUGH_ENERGY){
             console.log('created new upgrader named ' + spawnResult);
+        }
+    }
+
+    private static spawnBuilders(spawn : Spawn) : void {
+        var spawnResult = Builder.Spawn(spawn, spawn.room.energyCapacityAvailable);
+        if(spawnResult != ERR_BUSY && spawnResult != ERR_NOT_ENOUGH_ENERGY){
+            console.log('created new builder named ' + spawnResult);
         }
     }
 

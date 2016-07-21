@@ -13,6 +13,12 @@ export class Helpers{
         }).length;
     }
 
+    public static getNumberOfCreepsByRoom(room : string) : number {
+        return _.filter(Game.creeps, function(x : Creep) {
+            return x.memory.homeRoomName == room;
+        }).length;
+    }
+
     public static getSourcesByRoom(room : Room, mustBeSafe : boolean = true) : Source[] {
         var sources = room.find(FIND_SOURCES);
         if(mustBeSafe){

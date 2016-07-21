@@ -11,3 +11,7 @@ export enum Roles{
     Upgrader = 3,
     Builder = 4
 }
+
+export class MagicNumbers{
+    public static get MAX_NUM_CREEPS(){ return 50; }
+}
